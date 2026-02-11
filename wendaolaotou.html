@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>追讨宝物</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary-color: #8B4513; --secondary-color: #D4AF37; --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); --card-bg: rgba(255, 255, 255, 0.08); --text-gold: #FFD700; --text-light: #E8E8E8; --star-2: #A0A0A0; --star-3: #4CAF50; --star-4: #2196F3; --star-5: #9C27B0; --danger: #e74c3c; --success: #27ae60; }
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-gradient); min-height: 100vh; color: var(--text-light); padding: 12px; }
+        .main-layout { display: flex; gap: 16px; max-width: 900px; margin: 0 auto; min-height: calc(100vh - 24px); }
+        .left-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+        .right-panel { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; max-height: calc(100vh - 24px); }
+        .money-header { background: linear-gradient(135deg, #2d1810 0%, #4a2c17 100%); border: 2px solid var(--secondary-color); border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 4px 20px rgba(212, 175, 55, 0.3); }
+        .money-label { font-size: 14px; color: #B8860B; margin-bottom: 4px; }
+        .money-value { font-size: 28px; font-weight: bold; color: var(--text-gold); text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+        .stats-row { display: flex; justify-content: space-around; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(212, 175, 55, 0.3); }
+        .stat-item { text-align: center; }
+        .stat-label { font-size: 11px; color: #888; }
+        .stat-value { font-size: 14px; color: var(--text-gold); }
+        .stat-value.negative { color: var(--danger); }
+        .stat-value.positive { color: var(--success); }
+        .task-type-section { background: var(--card-bg); border-radius: 12px; padding: 16px; backdrop-filter: blur(10px); }
+        .section-title { font-size: 14px; color: #888; margin-bottom: 12px; text-align: center; }
+        .task-types { display: flex; gap: 10px; justify-content: center; }
+        .task-type-btn { flex: 1; padding: 12px 8px; border: 2px solid transparent; border-radius: 10px; background: rgba(255, 255, 255, 0.05); cursor: pointer; transition: all 0.3s ease; text-align: center; }
+        .task-type-btn:hover { background: rgba(255, 255, 255, 0.1); }
+        .task-type-btn.active { border-color: var(--secondary-color); background: rgba(212, 175, 55, 0.15); }
+        .task-type-btn.disabled { opacity: 0.5; cursor: not-allowed; }
+        .task-type-name { font-size: 16px; font-weight: bold; color: var(--text-light); margin-bottom: 4px; }
+        .task-type-cost { font-size: 12px; color: var(--text-gold); }
+        .star-section { background: var(--card-bg); border-radius: 12px; padding: 16px; backdrop-filter: blur(10px); }
+        .star-container { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+        .star-item { width: 70px; height: 70px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.05); border: 2px solid transparent; transition: all 0.15s ease; }
+        .star-item.highlight { transform: scale(1.1); box-shadow: 0 0 20px currentColor; }
+        .star-item[data-star="2"] { border-color: var(--star-2); color: var(--star-2); }
+        .star-item[data-star="2"].highlight { background: rgba(160, 160, 160, 0.3); }
+        .star-item[data-star="3"] { border-color: var(--star-3); color: var(--star-3); }
+        .star-item[data-star="3"].highlight { background: rgba(76, 175, 80, 0.3); }
+        .star-item[data-star="4"] { border-color: var(--star-4); color: var(--star-4); }
+        .star-item[data-star="4"].highlight { background: rgba(33, 150, 243, 0.3); }
+        .star-item[data-star="5"] { border-color: var(--star-5); color: var(--star-5); }
+        .star-item[data-star="5"].highlight { background: rgba(156, 39, 176, 0.3); }
+        .star-icon { font-size: 14px; margin-bottom: 2px; }
+        .star-label { font-size: 12px; font-weight: bold; }
+        .start-btn { width: 100%; padding: 14px; font-size: 18px; font-weight: bold; color: #fff; background: linear-gradient(135deg, #8B4513 0%, #D4AF37 100%); border: none; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4); }
+        .start-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5); }
+        .start-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .npc-section { background: var(--card-bg); border-radius: 12px; padding: 20px; backdrop-filter: blur(10px); display: none; }
+        .npc-section.show { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .npc-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #4a2c17 0%, #8B4513 100%); margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; border: 3px solid var(--secondary-color); }
+        .npc-name { text-align: center; font-size: 18px; font-weight: bold; color: var(--text-gold); margin-bottom: 12px; }
+        .npc-dialog { background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 14px; margin-bottom: 16px; text-align: center; font-size: 14px; line-height: 1.6; }
+        .task-result { text-align: center; margin-bottom: 16px; }
+        .task-star { font-size: 24px; font-weight: bold; margin-bottom: 4px; }
+        .task-star[data-star="2"] { color: var(--star-2); }
+        .task-star[data-star="3"] { color: var(--star-3); }
+        .task-star[data-star="4"] { color: var(--star-4); }
+        .task-star[data-star="5"] { color: var(--star-5); }
+        .treasure-name { font-size: 16px; color: var(--text-gold); }
+        .choice-buttons { display: flex; gap: 12px; }
+        .choice-btn { flex: 1; padding: 14px 12px; border: none; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; }
+        .choice-btn.pearl { background: linear-gradient(135deg, #E8E8E8 0%, #B8B8B8 100%); color: #333; }
+        .choice-btn.gourd { background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%); color: #fff; }
+        .choice-btn:hover { transform: translateY(-2px); }
+        .choice-btn .reward-hint { font-size: 11px; font-weight: normal; opacity: 0.8; display: block; margin-top: 4px; }
+        .result-section { background: var(--card-bg); border-radius: 12px; padding: 20px; backdrop-filter: blur(10px); text-align: center; display: none; }
+        .result-section.show { display: block; animation: fadeIn 0.5s ease; }
+        .result-icon { font-size: 48px; margin-bottom: 12px; }
+        .result-title { font-size: 20px; font-weight: bold; margin-bottom: 8px; }
+        .result-title.win { color: var(--text-gold); }
+        .result-title.lose { color: var(--danger); }
+        .result-amount { font-size: 28px; font-weight: bold; color: var(--success); margin-bottom: 16px; }
+        .result-amount.zero { color: var(--danger); }
+        .continue-btn { padding: 12px 40px; font-size: 16px; font-weight: bold; color: #fff; background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
+        .continue-btn:hover { transform: translateY(-2px); }
+        .history-section { background: var(--card-bg); border-radius: 12px; padding: 16px; backdrop-filter: blur(10px); flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
+        .history-title { font-size: 16px; font-weight: bold; color: var(--text-gold); }
+        .history-count { font-size: 12px; color: #888; }
+        .history-list { flex: 1; overflow-y: auto; min-height: 0; }
+        .history-item { background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; }
+        .history-item:last-child { margin-bottom: 0; }
+        .history-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .history-row:last-child { margin-bottom: 0; }
+        .history-label { color: #888; }
+        .history-value { color: var(--text-light); }
+        .history-value.win { color: var(--success); }
+        .history-value.lose { color: var(--danger); }
+        .history-empty { text-align: center; color: #666; padding: 20px; }
+        .reset-section { text-align: center; padding: 12px 0; flex-shrink: 0; }
+        .reset-btn { width: 100%; padding: 10px 30px; font-size: 14px; color: #888; background: transparent; border: 1px solid #444; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
+        .reset-btn:hover { color: var(--danger); border-color: var(--danger); }
+        .mode-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid #333; }
+        .mode-buttons { display: flex; gap: 8px; }
+        .mode-btn { flex: 1; padding: 8px; font-size: 12px; border: 1px solid #444; border-radius: 6px; background: transparent; color: #888; cursor: pointer; transition: all 0.3s ease; }
+        .mode-btn.active { border-color: var(--secondary-color); color: var(--text-gold); background: rgba(212, 175, 55, 0.15); }
+        .mode-btn:hover:not(.active) { border-color: #666; color: #aaa; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal-overlay.show { display: flex; }
+        .modal-content { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 2px solid var(--secondary-color); border-radius: 16px; padding: 24px; max-width: 320px; width: 100%; text-align: center; }
+        .modal-title { font-size: 18px; font-weight: bold; color: var(--text-gold); margin-bottom: 12px; }
+        .modal-text { font-size: 14px; color: var(--text-light); margin-bottom: 20px; }
+        .modal-buttons { display: flex; gap: 12px; }
+        .modal-btn { flex: 1; padding: 12px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
+        .modal-btn.cancel { background: #444; color: #fff; }
+        .modal-btn.confirm { background: var(--danger); color: #fff; }
+        .alert-modal { position: relative; }
+        .alert-close { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; background: rgba(255,255,255,0.1); border: none; border-radius: 50%; color: #888; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
+        .alert-close:hover { background: rgba(255,255,255,0.2); color: #fff; }
+        .alert-icon { font-size: 48px; margin-bottom: 16px; }
+        .alert-text { font-size: 16px; color: var(--text-light); line-height: 1.6; }
+        .history-list::-webkit-scrollbar { width: 4px; }
+        .history-list::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
+        .history-list::-webkit-scrollbar-thumb { background: var(--secondary-color); border-radius: 2px; }
+        @keyframes glow { 0%, 100% { box-shadow: 0 0 5px currentColor; } 50% { box-shadow: 0 0 20px currentColor, 0 0 30px currentColor; } }
+        .star-item.final { animation: glow 1s ease-in-out infinite; }
+        @keyframes coinDrop { 0% { transform: translateY(-20px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        .result-amount.animate { animation: coinDrop 0.5s ease; }
+        @media (max-width: 768px) { .main-layout { flex-direction: column; } .right-panel { width: 100%; } .history-list { max-height: 250px; } }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        <div class="left-panel">
+            <div class="task-type-section">
+                <div class="section-title">选择追讨类型</div>
+                <div class="task-types">
+                    <div class="task-type-btn active" data-type="normal" onclick="selectTaskType('normal')">
+                        <div class="task-type-name">普通</div>
+                        <div class="task-type-cost">200万文</div>
+                    </div>
+                    <div class="task-type-btn" data-type="advanced" onclick="selectTaskType('advanced')">
+                        <div class="task-type-name">高级</div>
+                        <div class="task-type-cost">1000万文</div>
+                    </div>
+                    <div class="task-type-btn" data-type="super" onclick="selectTaskType('super')">
+                        <div class="task-type-name">超级</div>
+                        <div class="task-type-cost">1亿文</div>
+                    </div>
+                </div>
+            </div>
+            <div class="star-section">
+                <div class="section-title">任务星级</div>
+                <div class="star-container">
+                    <div class="star-item" data-star="2"><div class="star-icon">⭐⭐</div><div class="star-label">二星</div></div>
+                    <div class="star-item" data-star="3"><div class="star-icon">⭐⭐⭐</div><div class="star-label">三星</div></div>
+                    <div class="star-item" data-star="4"><div class="star-icon">⭐⭐⭐⭐</div><div class="star-label">四星</div></div>
+                    <div class="star-item" data-star="5"><div class="star-icon">⭐⭐⭐⭐⭐</div><div class="star-label">五星</div></div>
+                </div>
+                <button class="start-btn" id="startBtn" onclick="startTask()">开始追讨</button>
+            </div>
+            <div class="npc-section" id="npcSection">
+                <div class="npc-avatar" id="npcAvatar">👤</div>
+                <div class="npc-name" id="npcName">段铁心</div>
+                <div class="npc-dialog" id="npcDialog">恭喜你获得了任务奖励！请选择你要收取的宝物。</div>
+                <div class="task-result">
+                    <div class="task-star" id="taskStar" data-star="2">二星追讨任务</div>
+                    <div class="treasure-name" id="treasureName">二星普通珍珠</div>
+                </div>
+                <div class="choice-buttons">
+                    <button class="choice-btn pearl" onclick="chooseReward('pearl')">收下珍珠<span class="reward-hint" id="pearlHint">固定获得 83万文</span></button>
+                    <button class="choice-btn gourd" onclick="chooseReward('gourd')">收下葫芦<span class="reward-hint" id="gourdHint">50%概率获得高额奖励</span></button>
+                </div>
+            </div>
+            <div class="result-section" id="resultSection">
+                <div class="result-icon" id="resultIcon">🎉</div>
+                <div class="result-title" id="resultTitle">恭喜获得</div>
+                <div class="result-amount" id="resultAmount">+83万文</div>
+                <button class="continue-btn" onclick="continueGame()">继续追讨</button>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="money-header">
+                <div class="money-label">当前金钱</div>
+                <div class="money-value" id="moneyDisplay">20亿文</div>
+                <div class="stats-row">
+                    <div class="stat-item"><div class="stat-label">总花费</div><div class="stat-value negative" id="totalSpent">0文</div></div>
+                    <div class="stat-item"><div class="stat-label">总收益</div><div class="stat-value positive" id="totalEarned">0文</div></div>
+                    <div class="stat-item"><div class="stat-label">盈亏</div><div class="stat-value" id="netProfit">0文</div></div>
+                </div>
+            </div>
+            <div class="history-section">
+                <div class="history-header">
+                    <div class="history-title">游玩记录</div>
+                    <div class="history-count" id="historyCount">共 0 条</div>
+                </div>
+                <div class="history-list" id="historyList"><div class="history-empty">暂无记录</div></div>
+            </div>
+            <div class="reset-section">
+                <button class="reset-btn" onclick="showResetModal()">重置游戏</button>
+                <div class="mode-section">
+                    <div class="mode-buttons">
+                        <button class="mode-btn active" id="modeNormal" onclick="setGameMode('normal')">光宇真实倍率</button>
+                        <button class="mode-btn" id="modeGM" onclick="setGameMode('gm')">GM模式</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="resetModal">
+        <div class="modal-content">
+            <div class="modal-title">确认重置</div>
+            <div class="modal-text">重置后将清空所有游戏记录，金钱恢复为20亿文。确定要重置吗？</div>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="hideResetModal()">取消</button>
+                <button class="modal-btn confirm" onclick="resetGame()">确认重置</button>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="alertModal">
+        <div class="modal-content alert-modal">
+            <button class="alert-close" onclick="hideAlertModal()">×</button>
+            <div class="alert-icon">💸</div>
+            <div class="alert-text">金额不足！请远离赌博！不赌为赢！</div>
+        </div>
+    </div>
+    <script>
+        const NPC_LIST = ["段铁心", "商会会长", "天机老人", "云中子", "紫霞仙子", "铁扇公主", "镇元大仙", "太白金星", "南极仙翁", "东海龙王"];
+        const NPC_AVATARS = ["👤", "🧔", "👴", "🧙", "👸", "👩", "🧓", "👨", "🎅", "🐉"];
+        const INITIAL_MONEY = 2000000000;
+        const TASK_TYPES = { normal: { name: "普通", cost: 2000000 }, advanced: { name: "高级", cost: 10000000 }, super: { name: "超级", cost: 100000000 } };
+        const STAR_PROBABILITY_NORMAL = { 2: 0.65, 3: 0.20, 4: 0.10, 5: 0.05 };
+        const STAR_PROBABILITY_SUPER = { 2: 0.65, 3: 0.20, 4: 0.12, 5: 0.03 };
+        const STAR_NAMES = { 2: "二星", 3: "三星", 4: "四星", 5: "五星" };
+        const TREASURE_NAMES = { 2: "珍珠", 3: "玉盘", 4: "金樽", 5: "紫晶" };
+        const GOURD_CONFIG = { winRate: 0.50, multiplier: 2 };
+        const PEARL_REWARDS = {
+            normal: { 2: 200000, 3: 2000000, 4: 4000000, 5: 19400000 },
+            advanced: { 2: 1000000, 3: 10000000, 4: 20000000, 5: 97000000 },
+            super: { 2: 10000000, 3: 100000000, 4: 200000000, 5: 970000000 }
+        };
+        const PURPLE_EMPEROR_CRYSTAL = 2000000000;
+        const ANIMATION_CONFIG = { duration: 1700 };
+
+        let gameMode = 'normal';
+        let gameState = { money: INITIAL_MONEY, totalSpent: 0, totalEarned: 0, history: [], currentTaskType: 'normal', playingTaskType: null, currentStar: null, currentNpcIndex: null, isAnimating: false };
+
+        function getMultiplier() { return gameMode === 'gm' ? 2 : 1; }
+
+        function formatMoney(amount) {
+            if (amount >= 100000000) { const yi = amount / 100000000; return (yi >= 10 && Number.isInteger(yi)) ? yi + '亿文' : yi.toFixed(2).replace(/\.?0+$/, '') + '亿文'; }
+            else if (amount >= 10000) { const wan = amount / 10000; return Number.isInteger(wan) ? wan + '万文' : wan.toFixed(2).replace(/\.?0+$/, '') + '万文'; }
+            return amount + '文';
+        }
+
+        function getRandomStar(taskType) {
+            const baseProbConfig = taskType === 'super' ? STAR_PROBABILITY_SUPER : STAR_PROBABILITY_NORMAL;
+            const mult = getMultiplier();
+            let prob2 = baseProbConfig[2], prob3 = baseProbConfig[3] * mult, prob4 = baseProbConfig[4] * mult, prob5 = baseProbConfig[5] * mult;
+            const total = prob2 + prob3 + prob4 + prob5;
+            prob2 /= total; prob3 /= total; prob4 /= total; prob5 /= total;
+            const rand = Math.random();
+            if (rand < prob2) return 2;
+            if (rand < prob2 + prob3) return 3;
+            if (rand < prob2 + prob3 + prob4) return 4;
+            return 5;
+        }
+
+        function randomFloatReward(baseValue) {
+            const fluctuation = 0.3;
+            const multiplier = 1 - fluctuation + Math.random() * fluctuation * 2;
+            return Math.floor(baseValue * multiplier);
+        }
+
+        function getPearlReward(taskType, star) { return randomFloatReward(PEARL_REWARDS[taskType][star] * getMultiplier()); }
+
+        function getGourdReward(taskType, star) {
+            if (taskType === 'super' && star === 5) return randomFloatReward(PURPLE_EMPEROR_CRYSTAL * getMultiplier());
+            const pearlValue = PEARL_REWARDS[taskType][star];
+            return randomFloatReward(pearlValue * GOURD_CONFIG.multiplier * getMultiplier());
+        }
+
+        function isGourdWin() { const rate = Math.min(GOURD_CONFIG.winRate * getMultiplier(), 1); const rand = Math.random(); const win = rand < rate; console.log(`葫芦抽奖: 随机数=${rand.toFixed(3)}, 阈值=${rate}, 中奖=${win}`); return win; }
+
+        function getTreasureName(taskType, star, isGourd = false) {
+            const typeName = TASK_TYPES[taskType].name;
+            const starName = STAR_NAMES[star];
+            let treasureName = TREASURE_NAMES[star];
+            if (taskType === 'super' && star === 5 && isGourd) treasureName = "紫帝晶";
+            return starName + typeName + treasureName;
+        }
+
+        function getRandomNpc() { return Math.floor(Math.random() * NPC_LIST.length); }
+        function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+        function saveGameData() {
+            const data = { money: gameState.money, totalSpent: gameState.totalSpent, totalEarned: gameState.totalEarned, history: gameState.history };
+            localStorage.setItem('zhuiTaoBaoWu_gameData', JSON.stringify(data));
+        }
+
+        function loadGameData() {
+            const saved = localStorage.getItem('zhuiTaoBaoWu_gameData');
+            if (saved) { const data = JSON.parse(saved); gameState.money = data.money; gameState.totalSpent = data.totalSpent; gameState.totalEarned = data.totalEarned; gameState.history = data.history || []; }
+        }
+
+        function updateMoneyDisplay() {
+            document.getElementById('moneyDisplay').textContent = formatMoney(gameState.money);
+            document.getElementById('totalSpent').textContent = formatMoney(gameState.totalSpent);
+            document.getElementById('totalEarned').textContent = formatMoney(gameState.totalEarned);
+            const netProfit = gameState.totalEarned - gameState.totalSpent;
+            const netProfitEl = document.getElementById('netProfit');
+            if (netProfit >= 0) { netProfitEl.textContent = '+' + formatMoney(netProfit); netProfitEl.className = 'stat-value positive'; }
+            else { netProfitEl.textContent = '-' + formatMoney(Math.abs(netProfit)); netProfitEl.className = 'stat-value negative'; }
+            updateTaskTypeButtons();
+        }
+
+        function updateTaskTypeButtons() {
+            document.querySelectorAll('.task-type-btn').forEach(btn => {
+                const type = btn.dataset.type; const cost = TASK_TYPES[type].cost;
+                if (gameState.money < cost) btn.classList.add('disabled'); else btn.classList.remove('disabled');
+            });
+        }
+
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('historyList');
+            const historyCount = document.getElementById('historyCount');
+            historyCount.textContent = `共 ${gameState.history.length} 条`;
+            if (gameState.history.length === 0) { historyList.innerHTML = '<div class="history-empty">暂无记录</div>'; return; }
+            const reversedHistory = [...gameState.history].reverse();
+            historyList.innerHTML = reversedHistory.map((record, index) => {
+                const realIndex = gameState.history.length - index;
+                const profitClass = record.reward > 0 ? 'win' : 'lose';
+                const profitText = record.reward > 0 ? '+' + formatMoney(record.reward) : '空手而归';
+                return `<div class="history-item"><div class="history-row"><span class="history-label">第${realIndex}次 · ${record.typeName}追讨</span><span class="history-value">${record.starName}任务</span></div><div class="history-row"><span class="history-label">${record.npcName} · ${record.choice === 'pearl' ? '珍珠' : '葫芦'}</span><span class="history-value ${profitClass}">${profitText}</span></div><div class="history-row"><span class="history-label">花费</span><span class="history-value negative">-${formatMoney(record.cost)}</span></div></div>`;
+            }).join('');
+        }
+
+        function selectTaskType(type) {
+            if (gameState.isAnimating) return;
+            const cost = TASK_TYPES[type].cost;
+            if (gameState.money < cost) { showAlertModal(); return; }
+            gameState.currentTaskType = type;
+            document.querySelectorAll('.task-type-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.task-type-btn[data-type="${type}"]`).classList.add('active');
+            if (gameState.playingTaskType === null) document.getElementById('startBtn').disabled = false;
+        }
+
+        function startTask() {
+            if (gameState.isAnimating) return;
+            const taskType = gameState.currentTaskType;
+            const cost = TASK_TYPES[taskType].cost;
+            if (gameState.money < cost) { showAlertModal(); return; }
+            gameState.money -= cost; gameState.totalSpent += cost;
+            gameState.playingTaskType = taskType;
+            updateMoneyDisplay(); saveGameData();
+            gameState.isAnimating = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('npcSection').classList.remove('show');
+            document.getElementById('resultSection').classList.remove('show');
+            const finalStar = getRandomStar(taskType);
+            gameState.currentStar = finalStar;
+            gameState.currentNpcIndex = getRandomNpc();
+            startRollingAnimation(finalStar);
+        }
+
+        function startRollingAnimation(finalStar) {
+            const starItems = document.querySelectorAll('.star-item');
+            const stars = [2, 3, 4, 5];
+            const finalIndex = stars.indexOf(finalStar);
+            const duration = ANIMATION_CONFIG.duration;
+            const startTime = performance.now();
+            const minCycles = 3;
+            const totalSteps = minCycles * 4 + finalIndex;
+            let lastHighlightIndex = -1;
+            function animate(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easedProgress = easeOutCubic(progress);
+                const currentStep = Math.floor(easedProgress * totalSteps);
+                const currentIndex = currentStep % 4;
+                if (currentIndex !== lastHighlightIndex) {
+                    starItems.forEach(item => item.classList.remove('highlight', 'final'));
+                    starItems[currentIndex].classList.add('highlight');
+                    lastHighlightIndex = currentIndex;
+                }
+                if (progress < 1) requestAnimationFrame(animate);
+                else {
+                    starItems.forEach(item => item.classList.remove('highlight'));
+                    starItems[finalIndex].classList.add('highlight', 'final');
+                    setTimeout(() => showNpcDialog(), 300);
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function showNpcDialog() {
+            gameState.isAnimating = false;
+            document.getElementById('startBtn').disabled = true;
+            const taskType = gameState.playingTaskType;
+            const star = gameState.currentStar;
+            const npcIndex = gameState.currentNpcIndex;
+            const npcName = NPC_LIST[npcIndex];
+            const npcAvatar = NPC_AVATARS[npcIndex];
+            const treasureName = getTreasureName(taskType, star, false);
+            const basePearl = PEARL_REWARDS[taskType][star] * getMultiplier();
+            const pearlMin = Math.floor(basePearl * 0.7), pearlMax = Math.floor(basePearl * 1.3);
+            let gourdHintText;
+            if (taskType === 'super' && star === 5) { const base = PURPLE_EMPEROR_CRYSTAL * getMultiplier(); const gMin = Math.floor(base * 0.7), gMax = Math.floor(base * 1.3); gourdHintText = `50%概率获得${formatMoney(gMin)}~${formatMoney(gMax)}`; }
+            else { const baseGourd = basePearl * GOURD_CONFIG.multiplier; const gMin = Math.floor(baseGourd * 0.7), gMax = Math.floor(baseGourd * 1.3); gourdHintText = `50%概率获得${formatMoney(gMin)}~${formatMoney(gMax)}`; }
+            document.getElementById('npcAvatar').textContent = npcAvatar;
+            document.getElementById('npcName').textContent = npcName;
+            document.getElementById('npcDialog').textContent = `少侠，我是${npcName}。恭喜你完成了追讨任务！这是你应得的奖励，请选择你要收取的宝物。`;
+            const taskStarEl = document.getElementById('taskStar');
+            taskStarEl.textContent = STAR_NAMES[star] + '追讨任务';
+            taskStarEl.dataset.star = star;
+            document.getElementById('treasureName').textContent = treasureName;
+            document.getElementById('pearlHint').textContent = `获得 ${formatMoney(pearlMin)}~${formatMoney(pearlMax)}`;
+            document.getElementById('gourdHint').textContent = gourdHintText;
+            document.getElementById('npcSection').classList.add('show');
+        }
+
+        function chooseReward(choice) {
+            const taskType = gameState.playingTaskType;
+            const star = gameState.currentStar;
+            const npcIndex = gameState.currentNpcIndex;
+            let reward = 0, resultIcon, resultTitle;
+            if (choice === 'pearl') { reward = getPearlReward(taskType, star); resultIcon = '💎'; resultTitle = '获得 ' + getTreasureName(taskType, star, false); }
+            else {
+                if (isGourdWin()) { reward = getGourdReward(taskType, star); if (taskType === 'super' && star === 5) { resultIcon = '👑'; resultTitle = '恭喜获得 紫帝晶！'; } else { resultIcon = '🎉'; resultTitle = '获得 ' + getTreasureName(taskType, star, true); } }
+                else { reward = 0; resultIcon = '💨'; resultTitle = '葫芦是空的...'; }
+            }
+            gameState.money += reward; gameState.totalEarned += reward;
+            const record = { taskType: taskType, typeName: TASK_TYPES[taskType].name, star: star, starName: STAR_NAMES[star], npcName: NPC_LIST[npcIndex], choice: choice, cost: TASK_TYPES[taskType].cost, reward: reward, timestamp: Date.now() };
+            gameState.history.push(record);
+            gameState.playingTaskType = null;
+            saveGameData();
+            showResult(resultIcon, resultTitle, reward);
+            document.getElementById('startBtn').disabled = false;
+        }
+
+        function showResult(icon, title, amount) {
+            document.getElementById('npcSection').classList.remove('show');
+            const resultIconEl = document.getElementById('resultIcon');
+            const resultTitleEl = document.getElementById('resultTitle');
+            const resultAmountEl = document.getElementById('resultAmount');
+            resultIconEl.textContent = icon;
+            resultTitleEl.textContent = title;
+            if (amount > 0) { resultTitleEl.className = 'result-title win'; resultAmountEl.textContent = '+' + formatMoney(amount); resultAmountEl.className = 'result-amount animate'; }
+            else { resultTitleEl.className = 'result-title lose'; resultAmountEl.textContent = '空手而归'; resultAmountEl.className = 'result-amount zero'; }
+            document.getElementById('resultSection').classList.add('show');
+            updateMoneyDisplay(); updateHistoryDisplay();
+        }
+
+        function continueGame() {
+            document.querySelectorAll('.star-item').forEach(item => item.classList.remove('highlight', 'final'));
+            document.getElementById('resultSection').classList.remove('show');
+            gameState.isAnimating = false; gameState.playingTaskType = null; gameState.currentStar = null; gameState.currentNpcIndex = null;
+            document.getElementById('startBtn').disabled = false;
+            const minCost = Math.min(...Object.values(TASK_TYPES).map(t => t.cost));
+            if (gameState.money < minCost) { showAlertModal(); return; }
+            startTask();
+        }
+
+        function showResetModal() { document.getElementById('resetModal').classList.add('show'); }
+        function hideResetModal() { document.getElementById('resetModal').classList.remove('show'); }
+        function showAlertModal() { document.getElementById('alertModal').classList.add('show'); }
+        function hideAlertModal() { document.getElementById('alertModal').classList.remove('show'); }
+
+        function setGameMode(mode) {
+            gameMode = mode;
+            document.getElementById('modeNormal').classList.toggle('active', mode === 'normal');
+            document.getElementById('modeGM').classList.toggle('active', mode === 'gm');
+        }
+
+        function resetGame() {
+            localStorage.removeItem('zhuiTaoBaoWu_gameData');
+            gameState = { money: INITIAL_MONEY, totalSpent: 0, totalEarned: 0, history: [], currentTaskType: 'normal', playingTaskType: null, currentStar: null, currentNpcIndex: null, isAnimating: false };
+            updateMoneyDisplay(); updateHistoryDisplay();
+            document.querySelectorAll('.star-item').forEach(item => item.classList.remove('highlight', 'final'));
+            hideResetModal();
+            document.getElementById('npcSection').classList.remove('show');
+            document.getElementById('resultSection').classList.remove('show');
+            document.querySelectorAll('.task-type-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('.task-type-btn[data-type="normal"]').classList.add('active');
+            document.getElementById('startBtn').disabled = false;
+        }
+
+        function init() { loadGameData(); updateMoneyDisplay(); updateHistoryDisplay(); }
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
