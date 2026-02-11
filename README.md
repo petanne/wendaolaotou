@@ -1,7 +1,9 @@
-# wendaolaotou
-问道 追讨任务/老头 小游戏，单html
+# 在线体验
+问道 追讨任务/老头 模拟小游戏，单html
 
-把 [wendaolaotou.html](https://github.com/petanne/wendaolaotou/blob/main/wendaolaotou.html) 文件拖动到浏览器即可体验。
+[在线体验](https://petanne.github.io/wendaolaotou/index.html)
+
+---
 
 # 🎮 追讨宝物 - 游玩指南
 
